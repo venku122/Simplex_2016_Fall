@@ -21,6 +21,10 @@ class MyMesh
 	ShaderManager* m_pShaderMngr = nullptr;	//Shader Manager
 
 public:
+
+	float xOffset = 0.0f;
+	float yOffset = 0.0f;
+	float zOffset = 0.0f;
 	/*
 	USAGE: Initialize the object's fields
 	ARGUMENTS: ---
