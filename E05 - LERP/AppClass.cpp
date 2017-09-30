@@ -54,15 +54,36 @@ void Application::Display(void)
 	static uint uClock = m_pSystem->GenClock(); //generate a new clock for that timer
 	fTimer += m_pSystem->GetDeltaTime(uClock); //get the delta time for that timer
 
+	// get current position and target position
+	float timeToWaypoint = 1.5;
+	static int targetWaypoint = 1;
+	static int currentWaypoint = 0;
+	float percentDone = fTimer / timeToWaypoint;
+
 	//calculate the current position
-	vector3 v3CurrentPos;
+	vector3 v3StartingPos = m_stopsList[currentWaypoint];
+	vector3 v3TargetPos = m_stopsList[targetWaypoint];
+	vector3 v3CurrentPos = glm::lerp(v3StartingPos, v3TargetPos, percentDone);
+
+	// check if target is achieved
+	if (fTimer >= timeToWaypoint) {
+		fTimer = 0;
+		currentWaypoint = targetWaypoint;
+		targetWaypoint++;
+
+		if (targetWaypoint >= m_stopsList.size()) {
+			targetWaypoint = 0;
+		}
+	}
+
 	
 
 
 
 
 	//your code goes here
-	v3CurrentPos = vector3(0.0f, 0.0f, 0.0f);
+	// glm::lerp(initialV3, finalV3, timeRemaining)
+	//v3CurrentPos = vector3(0.0f, 0.0f, 0.0f);
 	//-------------------
 	
 
