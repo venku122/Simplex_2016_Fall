@@ -82,6 +82,9 @@ void Application::Display(void)
 void Application::Release(void)
 {
 	SafeDelete(m_pMesh);
+	for (int i = 0; i < alien.size(); i++) {
+		SafeDelete(alien[i]);
+	}
 
 	//release GUI
 	ShutdownGUI();
