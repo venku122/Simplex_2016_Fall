@@ -8,7 +8,7 @@ Date: 2017/05
 //#include <vld.h>
 
 #include "MyMesh.h"
-
+#include "Planet.cpp"
 #include "SFML\Window.hpp"
 #include "SFML\Graphics.hpp"
 #include "SFML\OpenGL.hpp"
@@ -20,6 +20,7 @@ class Application
 {
 	uint m_uOrbits = 0; //number of shapes starting at 3 and increasing in sides
 	std::vector<uint> m_shapeList; //shape index for circles
+  std::vector<Planet> planets;
 	String m_sProgrammer = "Alberto Bobadilla - labigm@rit.edu";
 	
 private:

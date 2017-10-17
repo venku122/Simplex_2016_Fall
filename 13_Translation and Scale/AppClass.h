@@ -15,7 +15,7 @@ Date: 2017/05
 class Application
 {
 	MyMesh* m_pMesh = nullptr;
-	String m_sProgrammer = "Alberto Bobadilla - labigm@rit.edu";
+	String m_sProgrammer = "T.J. Tarazevits - tjt3085@g.rit.edu";
 	std::vector<MyMesh*> alien;
 private:
 	static ImGuiObject gui; //GUI object
