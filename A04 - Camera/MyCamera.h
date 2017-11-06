@@ -12,9 +12,15 @@ namespace Simplex
 
 class MyCamera
 {
-	vector3 m_v3Position = vector3(0.0f, 0.0f, 10.0f); //Where my camera is located
-	vector3 m_v3Target = vector3(0.0f, 0.0f, 0.0f); //What I'm looking at
-	vector3 m_v3Up = vector3(0.0f, 1.0f, 0.0f); //What is up
+    vector3 m_v3Position = vector3(0.0f, 0.0f, 10.0f); //Where my camera is located
+    vector3 m_v3Target = vector3(0.0f, 0.0f, 0.0f); //What I'm looking at
+    vector3 m_v3Up = vector3(0.0f, 1.0f, 0.0f); //What is up
+    vector3 m_v3Forward = vector3(0.0f, 0.0f, 1.0f);
+    vector3 m_v3Rightward = vector3(1.0f, 0.0f, 0.0f);
+    vector3 m_v3Top = vector3(0.0f, 1.0f, 0.0f);
+
+    quaternion rotationX;
+    quaternion rotationY;
 
 	bool m_bPerspective = true; //perspective view? False is Orthographic
 
@@ -211,6 +217,22 @@ public:
 	OUTPUT: ---
 	*/
 	void CalculateProjectionMatrix(void);
+
+  // Method: MoveForward
+  // Purpose: move the camera forward or backwards a given distance
+  // params: change of forward distance 
+  void MoveForward(float forwardDistance);
+
+  // Method: MoveSideways
+  // Purpose: move the camera sideways using a given distance
+  // params: change of right distance
+  void MoveSideways(float lateralDistance);
+
+  // Method: ChangePitchYaw
+  // Purpose: change the rotation of the camera
+  // params: degree of rotation in X, degree of rotation in Y
+  void ChangePitchYaw(float degreesX, float degreesY);
+
 };
 
 } //namespace Simplex

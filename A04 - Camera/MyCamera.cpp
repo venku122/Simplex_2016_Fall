@@ -24,6 +24,10 @@ matrix4 Simplex::MyCamera::GetProjectionMatrix(void) { return m_m4Projection; }
 
 matrix4 Simplex::MyCamera::GetViewMatrix(void) { CalculateViewMatrix(); return m_m4View; }
 
+vector3 Simplex::MyCamera::GetPosition(void) { return m_v3Position; }
+vector3 Simplex::MyCamera::GetTarget(void) { return m_v3Target; }
+vector3 Simplex::MyCamera::GetUp(void) { return glm::normalize(m_v3Up); }
+
 Simplex::MyCamera::MyCamera()
 {
 	Init(); //Init the object with default values
@@ -123,6 +127,57 @@ void Simplex::MyCamera::ResetCamera(void)
 
 	CalculateProjectionMatrix();
 	CalculateViewMatrix();
+}
+
+void Simplex::MyCamera::MoveForward(float forwardDistance)
+{
+    // calculate new position, target, and top vectors
+    m_v3Target += m_v3Forward * forwardDistance;
+    m_v3Position += m_v3Forward * forwardDistance;
+    m_v3Top += m_v3Forward * forwardDistance;
+
+    // update forward, up and right vectors 
+    m_v3Forward = glm::normalize(m_v3Target - m_v3Position);
+    m_v3Up = glm::normalize(m_v3Top - m_v3Position);
+    m_v3Rightward = glm::normalize(glm::cross(m_v3Forward, m_v3Up));
+
+    CalculateProjectionMatrix();
+
+}
+
+void Simplex::MyCamera::MoveSideways(float lateralDistance)
+{
+    // calculate new position, target, and top vectors
+    m_v3Target += m_v3Rightward * lateralDistance;
+    m_v3Position += m_v3Rightward * lateralDistance;
+    m_v3Top += m_v3Rightward * lateralDistance;
+
+    // update forward, up and right vectors 
+    m_v3Forward = glm::normalize(m_v3Target - m_v3Position);
+    m_v3Up = glm::normalize(m_v3Top - m_v3Position);
+    m_v3Rightward = glm::normalize(glm::cross(m_v3Forward, m_v3Up));
+
+    CalculateProjectionMatrix();
+
+}
+
+void Simplex::MyCamera::ChangePitchYaw(float degreesX, float degreesY)
+{
+    // use quaternions for rotation
+    rotationX = glm::angleAxis(glm::degrees(degreesX) / 2.0f, m_v3Rightward);
+    rotationY = glm::angleAxis(glm::degrees(degreesY) / 2.0f, m_v3Up);
+
+    // calculate new forward vector by rotating using cross and normals
+    m_v3Forward = glm::rotate(glm::cross(rotationX, rotationY), glm::normalize(m_v3Target - m_v3Position));
+
+    // calculate right vector using  cross between forward and up vectors
+    m_v3Rightward = glm::normalize(glm::cross(m_v3Forward, m_v3Up));
+
+    // calculate target vector
+    m_v3Target = m_v3Position + m_v3Forward;
+
+    // calculate top vector
+    m_v3Top = m_v3Position + m_v3Up;
 }
 
 void Simplex::MyCamera::SetPositionTargetAndUp(vector3 a_v3Position, vector3 a_v3Target, vector3 a_v3Upward)
