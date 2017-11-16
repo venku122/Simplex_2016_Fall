@@ -250,7 +250,7 @@ private:
 
 
   /*
-  USAGE: This will return a mat4 that transfrom a 'from' vector to the 'to' vector
+  USAGE: Creates a matrix (mat4) to convert to 
   ARGUMENTS:	Starting vector
   Ending vector
   OUTPUT: Rotation mat4
@@ -259,10 +259,9 @@ private:
 
   /*
   USAGE: This pushes two planes to mesh manager to be drawn
-  ARGUMENTS:	The position of the planes
-  The desired scale of the planes
-  The desired orthogonal of the planes
-  The color
+  ARGUMENTS:	The position of the plane
+  The orthogonal vector of the plane
+  The color of the plane
   OUTPUT: ---
   */
   void GeneratePlane(matrix4 translation, vector3 orthogonal, vector3 color);
