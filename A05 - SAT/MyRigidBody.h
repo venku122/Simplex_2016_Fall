@@ -247,6 +247,25 @@ private:
 	OUTPUT: 0 for colliding, other = first axis that succeeds test
 	*/
 	uint SAT(MyRigidBody* const a_pOther);
+
+
+  /*
+  USAGE: This will return a mat4 that transfrom a 'from' vector to the 'to' vector
+  ARGUMENTS:	Starting vector
+  Ending vector
+  OUTPUT: Rotation mat4
+  */
+  matrix4 RotateFrom(vector3 from, vector3 to);
+
+  /*
+  USAGE: This pushes two planes to mesh manager to be drawn
+  ARGUMENTS:	The position of the planes
+  The desired scale of the planes
+  The desired orthogonal of the planes
+  The color
+  OUTPUT: ---
+  */
+  void GeneratePlane(matrix4 translation, vector3 orthogonal, vector3 color);
 };//class
 
 } //namespace Simplex

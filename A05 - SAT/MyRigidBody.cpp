@@ -276,17 +276,195 @@ void MyRigidBody::AddToRenderList(void)
 
 uint MyRigidBody::SAT(MyRigidBody* const a_pOther)
 {
-	/*
-	Your code goes here instead of this comment;
+    float radiusA; // radius of object A (this object)
+    float radiusB; // radius of object B (a_pOther)
+    matrix4 rotation; // rotation matrix
+    matrix4 absRotation; // absolute rotation matrix
+    vector3 centerA = this->GetCenterGlobal(); // vector representing the center of the object, used for drawing the plane
+    vector3 centerB = a_pOther->GetCenterGlobal(); // vector representing the center of the other object, used for drawing the plane
 
-	For this method, if there is an axis that separates the two objects
-	then the return will be different than 0; 1 for any separating axis
-	is ok if you are not going for the extra credit, if you could not
-	find a separating axis you need to return 0, there is an enum in
-	Simplex that might help you [eSATResults] feel free to use it.
-	(eSATResults::SAT_NONE has a value of 0)
-	*/
+    // Compute the rotation matrix expressing B in A's coordinate frame
+    // First get the local axes of both objects
+    // Then compute the rotation matrix based upon the dot product of those axes
+    vector3 localAxesA[3];
+    localAxesA[0] = vector3(m_m4ToWorld*vector4(AXIS_X, 0));
+    localAxesA[1] = vector3(m_m4ToWorld*vector4(AXIS_Y, 0));
+    localAxesA[2] = vector3(m_m4ToWorld*vector4(AXIS_Z, 0));
 
-	//there is no axis test that separates this two objects
+    vector3 localAxesB[3];
+    localAxesB[0] = vector3(a_pOther->m_m4ToWorld * vector4(AXIS_X, 0));
+    localAxesB[1] = vector3(a_pOther->m_m4ToWorld * vector4(AXIS_Y, 0));
+    localAxesB[2] = vector3(a_pOther->m_m4ToWorld * vector4(AXIS_Z, 0));
+
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            rotation[i][j] = glm::dot(localAxesA[i], localAxesB[j]);
+        }
+    }
+
+    // Compute translation vector from B to A (vec4 so that it can be used in the dot product calculations with the model's m4ToWorld matrix4)
+    vector4 translation = (a_pOther->m_m4ToWorld*vector4(a_pOther->m_v3Center, 1)) - (m_m4ToWorld*vector4(this->m_v3Center, 1));
+    // Bring tranlation into A's coordinate frame
+    translation = vector4(glm::dot(translation, m_m4ToWorld[0]), glm::dot(translation, m_m4ToWorld[1]), glm::dot(translation, m_m4ToWorld[2]), 1);
+
+    // create the absRotation matrix based on the abs values of the original rotation matrix
+    for (uint i = 0; i < 3; i++)
+    {
+        for (uint j = 0; j < 3; j++)
+        {
+            absRotation[i][j] = glm::abs(rotation[i][j]);
+        }
+    }
+
+    // Test SAT_AX, SAT_AY, SAT_AZ
+    for (int i = 0; i < 3; i++)
+    {
+        radiusA = m_v3HalfWidth[i];
+        radiusB = a_pOther->m_v3HalfWidth[0] * absRotation[i][0] + a_pOther->m_v3HalfWidth[1] * absRotation[i][1] + a_pOther->m_v3HalfWidth[2] * absRotation[i][2];
+        if (glm::abs(translation[i]) > radiusA + radiusB)
+        {
+            if (i == 0) {
+                GeneratePlane(glm::translate(IDENTITY_M4, glm::normalize(centerB - centerA) * (radiusA)+centerA), localAxesA[i], C_RED / 2.f);
+                return eSATResults::SAT_AX;
+            }
+            if (i == 1) {
+                GeneratePlane(glm::translate(IDENTITY_M4, glm::normalize(centerB - centerA) * (radiusA)+centerA), localAxesA[i], C_GREEN / 2.f);
+                return eSATResults::SAT_AY;
+            }
+            if (i == 2) {
+                GeneratePlane(glm::translate(IDENTITY_M4, glm::normalize(centerB - centerA) * (radiusA)+centerA), localAxesA[i], C_BLUE / 2.f);
+                return eSATResults::SAT_AZ;
+            }
+        }
+    }
+
+    // Test SAT_BX, SAT_BY, SAT_BZ
+    for (uint i = 0; i < 3; i++)
+    {
+        radiusA = m_v3HalfWidth[0] * absRotation[0][i] + m_v3HalfWidth[1] * absRotation[1][i] + m_v3HalfWidth[2] + absRotation[2][i];
+        radiusB = a_pOther->m_v3HalfWidth[i];
+        if (glm::abs(translation[0] * rotation[0][i] + translation[1] * rotation[1][i] + translation[2] * rotation[2][i]) > radiusA + radiusB)
+        {
+            if (i == 0) {
+                GeneratePlane(glm::translate(IDENTITY_M4, glm::normalize(centerB - centerA) * (radiusA)+centerA), localAxesB[i], C_RED / 2.f);
+                return eSATResults::SAT_BX;
+            }
+            if (i == 1) {
+                GeneratePlane(glm::translate(IDENTITY_M4, glm::normalize(centerB - centerA) * (radiusA)+centerA), localAxesB[i], C_GREEN / 2.f);
+                return eSATResults::SAT_BY;
+            }
+            if (i == 2) {
+                GeneratePlane(glm::translate(IDENTITY_M4, glm::normalize(centerB - centerA) * (radiusA) + centerA), localAxesB[i], C_BLUE / 2.f);
+                return eSATResults::SAT_BZ;
+            }
+        }
+    }
+
+    // Test SAT_AXxBX
+    radiusA = m_v3HalfWidth[1] * absRotation[2][0] + m_v3HalfWidth[2] * absRotation[1][0];
+    radiusB = a_pOther->m_v3HalfWidth[1] * absRotation[0][2] + a_pOther->m_v3HalfWidth[2] * absRotation[0][1];
+    if (glm::abs(translation[2] * rotation[1][0] - translation[1] * rotation[2][0]) > radiusA + radiusB)
+    {
+        GeneratePlane(glm::translate(IDENTITY_M4, glm::normalize(centerB - centerA) * (radiusA)+centerA), glm::cross(localAxesA[0], localAxesB[0]), C_PURPLE);
+        return eSATResults::SAT_AXxBX;
+    }
+
+    // Test SAT_AXxBY
+    radiusA = m_v3HalfWidth[1] * absRotation[2][1] + m_v3HalfWidth[2] * absRotation[1][1];
+    radiusB = a_pOther->m_v3HalfWidth[0] * absRotation[0][2] + a_pOther->m_v3HalfWidth[2] * absRotation[0][0];
+    if (glm::abs(translation[2] * rotation[1][1] - translation[1] * rotation[2][1]) > radiusA + radiusB)
+    {
+        GeneratePlane(glm::translate(IDENTITY_M4, glm::normalize(centerB - centerA) * (radiusA)+centerA), glm::cross(localAxesA[0], localAxesB[1]), C_PURPLE);
+        return eSATResults::SAT_AXxBY;
+    }
+
+    // Test SAT_AXxBZ
+    radiusA = m_v3HalfWidth[1] * absRotation[2][2] + m_v3HalfWidth[2] * absRotation[1][2];
+    radiusB = a_pOther->m_v3HalfWidth[0] * absRotation[0][1] + a_pOther->m_v3HalfWidth[1] * absRotation[0][0];
+    if (glm::abs(translation[2] * rotation[1][2] - translation[1] * rotation[2][2]) > radiusA + radiusB)
+    {
+        GeneratePlane(glm::translate(IDENTITY_M4, glm::normalize(centerB - centerA) * (radiusA)+centerA), glm::cross(localAxesA[0], localAxesB[2]), C_PURPLE);
+        return eSATResults::SAT_AXxBZ;
+    }
+
+    // Test SAT_AYxBX
+    radiusA = m_v3HalfWidth[0] * absRotation[2][0] + m_v3HalfWidth[2] * absRotation[0][0];
+    radiusB = a_pOther->m_v3HalfWidth[1] * absRotation[1][2] + a_pOther->m_v3HalfWidth[2] * absRotation[1][1];
+    if (glm::abs(translation[0] * rotation[2][0] - translation[2] * rotation[0][0]) > radiusA + radiusB)
+    {
+        GeneratePlane(glm::translate(IDENTITY_M4, glm::normalize(centerB - centerA) * (radiusA)+centerA), glm::cross(localAxesA[1], localAxesB[0]), C_PURPLE);
+        return eSATResults::SAT_AYxBX;
+    }
+
+    // Test SAT_AYxBY
+    radiusA = m_v3HalfWidth[0] * absRotation[2][1] + m_v3HalfWidth[2] * absRotation[0][1];
+    radiusB = a_pOther->m_v3HalfWidth[0] * absRotation[1][2] + a_pOther->m_v3HalfWidth[2] * absRotation[1][0];
+    if (glm::abs(translation[0] * rotation[2][1] - translation[2] * rotation[0][1]) > radiusA + radiusB)
+    {
+        GeneratePlane(glm::translate(IDENTITY_M4, glm::normalize(centerB - centerA) * (radiusA)+centerA), glm::cross(localAxesA[1], localAxesB[1]), C_PURPLE);
+        return eSATResults::SAT_AYxBY;
+    }
+
+    // Test SAT_AYxBZ
+    radiusA = m_v3HalfWidth[0] * absRotation[2][2] + m_v3HalfWidth[2] * absRotation[0][2];
+    radiusB = a_pOther->m_v3HalfWidth[0] * absRotation[1][1] + a_pOther->m_v3HalfWidth[1] * absRotation[1][0];
+    if (glm::abs(translation[0] * rotation[2][2] - translation[2] * rotation[0][2]) > radiusA + radiusB)
+    {
+        GeneratePlane(glm::translate(IDENTITY_M4, glm::normalize(centerB - centerA) * (radiusA)+centerA), glm::cross(localAxesA[1], localAxesB[2]), C_PURPLE);
+        return eSATResults::SAT_AYxBZ;
+    }
+
+    // Test SAT_AZxBX
+    radiusA = m_v3HalfWidth[0] * absRotation[1][0] + m_v3HalfWidth[1] * absRotation[0][0];
+    radiusB = a_pOther->m_v3HalfWidth[1] * absRotation[2][2] + a_pOther->m_v3HalfWidth[2] * absRotation[2][1];
+    if (glm::abs(translation[1] * rotation[0][0] - translation[0] * rotation[1][0]) > radiusA + radiusB)
+    {
+        GeneratePlane(glm::translate(IDENTITY_M4, glm::normalize(centerB - centerA) * (radiusA)+centerA), glm::cross(localAxesA[2], localAxesB[0]), C_PURPLE);
+        return eSATResults::SAT_AZxBX;
+    }
+
+    // Test SAT_AZxBY
+    radiusA = m_v3HalfWidth[0] * absRotation[1][1] + m_v3HalfWidth[1] * absRotation[0][1];
+    radiusB = a_pOther->m_v3HalfWidth[0] * absRotation[2][2] + a_pOther->m_v3HalfWidth[2] * absRotation[2][0];
+    if (glm::abs(translation[1] * rotation[0][1] - translation[0] * rotation[1][1]) > radiusA + radiusB)
+    {
+        GeneratePlane(glm::translate(IDENTITY_M4, glm::normalize(centerB - centerA) * (radiusA)+centerA), glm::cross(localAxesA[2], localAxesB[1]), C_PURPLE);
+        return eSATResults::SAT_AZxBY;
+    }
+
+    // Test SAT_AZxBZ
+    radiusA = m_v3HalfWidth[0] * absRotation[1][2] + m_v3HalfWidth[1] * absRotation[0][2];
+    radiusB = a_pOther->m_v3HalfWidth[0] * absRotation[2][1] + a_pOther->m_v3HalfWidth[1] * absRotation[2][0];
+    if (glm::abs(translation[1] * rotation[0][2] - translation[0] * rotation[1][2]) > radiusA + radiusB)
+    {
+        GeneratePlane(glm::translate(IDENTITY_M4, glm::normalize(centerB - centerA) * (radiusA) + centerA), glm::cross(localAxesA[2], localAxesB[2]), C_PURPLE);
+        return eSATResults::SAT_AZxBZ;
+    }
+
+
+	// there is no axis test that separates this two objects
 	return eSATResults::SAT_NONE;
+}
+
+matrix4 Simplex::MyRigidBody::RotateFrom(vector3 from, vector3 to)
+{
+    // generate rotational axis
+    vector3 axis = glm::cross(from, to);
+
+    quaternion q = quaternion(axis.x, axis.y, axis.z,
+        sqrtf(glm::length2(from) * glm::length2(to)) + glm::dot(from, to)); // calculates the quaternion
+    q = glm::normalize(q); // normalize the quaternion
+    return ToMatrix4(q); // convert to mat4
+}
+
+void Simplex::MyRigidBody::GeneratePlane(matrix4 translation, vector3 orthogonal, vector3 color)
+{
+    //scale for the separating plane
+    matrix4 scale = glm::scale(IDENTITY_M4, 3.f, 3.f, 3.f);
+
+    // draws two planes
+    m_pMeshMngr->AddPlaneToRenderList(translation * scale * RotateFrom(AXIS_Z, orthogonal), color, RENDER_SOLID);
+    m_pMeshMngr->AddPlaneToRenderList(translation * scale * RotateFrom(AXIS_Z, -orthogonal), color, RENDER_SOLID);
 }
